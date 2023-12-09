@@ -3,10 +3,9 @@
 import cv2
 import multiprocessing
 import numpy
-import signal
 import time
 import sigint_handler
-from database_keys import VIDEO_FRAME, SHUTDOWN
+from database import VIDEO_FRAME, SHUTDOWN, db_initialize
 from multiprocessing.managers import DictProxy
 
 # Captures video frames from the drone and publishes them to the db
@@ -47,6 +46,7 @@ def image_processor_test(db: DictProxy):
 if __name__ == '__main__':
     with multiprocessing.Manager() as manager:
         db = manager.dict()
+        db_initialize(db)
 
         processes = [
             multiprocessing.Process(target=target, args=(db, ))

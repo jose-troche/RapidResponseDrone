@@ -5,12 +5,13 @@ import sigint_handler
 import time
 from video_receiver import video_receiver
 from webserver import webserver
-from database_keys import SHUTDOWN
+from database import SHUTDOWN, db_initialize
 
 if __name__ == '__main__':
 
     with multiprocessing.Manager() as manager:
         db = manager.dict()
+        db_initialize(db)
 
         processes = [
             multiprocessing.Process(target=target, args=(db, ))

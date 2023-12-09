@@ -4,7 +4,7 @@ from http.server import SimpleHTTPRequestHandler, HTTPServer
 from http import HTTPStatus
 from multiprocessing.managers import DictProxy
 from urllib.parse import urlparse, parse_qs
-from database_keys import VIDEO_FRAME, SHUTDOWN
+from database import VIDEO_FRAME, SHUTDOWN, db_initialize
 from selectors import DefaultSelector, EVENT_READ
 import threading
 import socket
@@ -141,6 +141,7 @@ if __name__ == '__main__':
 
     with multiprocessing.Manager() as manager:
         db = manager.dict()
+        db_initialize(db)
 
         p = multiprocessing.Process(target=webserver, args=(db, ))
         p.start()

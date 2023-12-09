@@ -1,0 +1,17 @@
+from multiprocessing.managers import DictProxy
+
+# Database keys
+SHUTDOWN = 'SHUTDOWN'
+VIDEO_FRAME = 'VIDEO_FRAME'
+OBJECT_RECOGNITION_QUEUE = 'OBJECT_RECOGNITION_QUEUE'
+VOICE_COMMAND_QUEUE = 'VOICE_COMMAND_QUEUE'
+REPORT_GENERATED_QUEUE = 'REPORT_GENERATED_QUEUE'
+
+
+def db_initialize(db: DictProxy):
+    db[SHUTDOWN] = False
+    db[VIDEO_FRAME] = b''
+    db[OBJECT_RECOGNITION_QUEUE] = None
+    db[VOICE_COMMAND_QUEUE] = None
+    db[REPORT_GENERATED_QUEUE] = None
+
