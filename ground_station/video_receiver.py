@@ -3,30 +3,30 @@
 import cv2
 import multiprocessing
 import numpy
-from event_bus import EventBus
-from database_keys import FRAME
+import signal
+import time
+from database_keys import VIDEO_FRAME, SHUTDOWN
 from multiprocessing.managers import DictProxy
 
 # Captures video frames from the drone and publishes them to the db
 # so other processes can grab them.
-# It also checks whether the shutdown event is set to terminate
-def video_receiver(db: DictProxy, shutdown: multiprocessing.Event):
+def video_receiver(db: DictProxy):
     VIDEO_URL = 'udp://0.0.0.0:11111'
     is_frame_captured = False
     
-    while not shutdown.is_set():
+    while not db.get(SHUTDOWN, False):
         if not is_frame_captured:
-            print("Trying to acquire video feed ...")
+            print('Trying to acquire video feed ...')
             capture = cv2.VideoCapture(VIDEO_URL)
         else:
             image_encoded = cv2.imencode('.jpg', frame)[1]
             image_bytes = (numpy.array(image_encoded)).tobytes()
-            db[FRAME] = image_bytes
+            db[VIDEO_FRAME] = image_bytes
 
         is_frame_captured, frame = capture.read()
 
 
-    print("Shutting down the Video Receiver")
+    print('Shutting down the Video Receiver')
     if capture:
         capture.release()
     cv2.destroyAllWindows()
@@ -34,32 +34,41 @@ def video_receiver(db: DictProxy, shutdown: multiprocessing.Event):
 
 # ---------------------------------------------------------------------
 # The following is only an example of how to call the video_receiver 
-# and how to get the video frames from the event_bus
-def on_video_frame_received(frame):
-        print(f'Frame Size: {len(frame)}')
+# and how to get the video frames from the db
+shutdown = False
+def signal_handler(signum, frame):
+    print(f'SIGINT received at "{frame.f_code.co_name}" with signal {signum}')
+    global shutdown
+    shutdown = True
+signal.signal(signal.SIGINT, signal_handler)
+
+def image_processor(db: DictProxy):
+
+    while not db.get(SHUTDOWN, False):
+        print('Reading image frame with size', len(db.get(VIDEO_FRAME, '')))
+        time.sleep(2)
+
+    print('Shutting down the Image Processor')
 
 if __name__ == '__main__':
-    # event_bus = EventBus()
-    # event_bus.add_listener(EventBus.VIDEO_FRAME, on_video_frame_received)
-
     with multiprocessing.Manager() as manager:
         db = manager.dict()
-        db[FRAME] = ''
 
-        shutdown = multiprocessing.Event()
+        processes = [
+            multiprocessing.Process(target=target, args=(db, ))
+            for target in [image_processor, video_receiver]
+        ]
 
-        p = multiprocessing.Process(target=video_receiver, args=(db, shutdown))
+        for p in processes:
+            p.start()
 
-        p.start()
+        while not shutdown:
+            print('Main process running')
+            time.sleep(1)
 
-        # Ctrl+C to stop main
-        try:
-            while True:
-                print(f'Frame Size: {len(db[FRAME])}')
-        finally:
-            print("Shutting down")
-            shutdown.set()
+        print('Main process shutting down')
+
+        db[SHUTDOWN] = True
+
+        for p in processes:
             p.join()
-
-
-    
