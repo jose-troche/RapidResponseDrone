@@ -2,12 +2,15 @@
 
 import cv2
 import multiprocessing
+import numpy
 from event_bus import EventBus
+from database_keys import FRAME
+from multiprocessing.managers import DictProxy
 
-# Captures video frames from the drone and publishes them to the event_bus
+# Captures video frames from the drone and publishes them to the db
 # so other processes can grab them.
-# It also checks whether the shutdown event to terminate
-def video_receiver(event_bus: EventBus, shutdown: multiprocessing.Event):
+# It also checks whether the shutdown event is set to terminate
+def video_receiver(db: DictProxy, shutdown: multiprocessing.Event):
     VIDEO_URL = 'udp://0.0.0.0:11111'
     is_frame_captured = False
     
@@ -16,7 +19,9 @@ def video_receiver(event_bus: EventBus, shutdown: multiprocessing.Event):
             print("Trying to acquire video feed ...")
             capture = cv2.VideoCapture(VIDEO_URL)
         else:
-            event_bus.emit(EventBus.VIDEO_FRAME, frame)
+            image_encoded = cv2.imencode('.jpg', frame)[1]
+            image_bytes = (numpy.array(image_encoded)).tobytes()
+            db[FRAME] = image_bytes
 
         is_frame_captured, frame = capture.read()
 
@@ -34,21 +39,27 @@ def on_video_frame_received(frame):
         print(f'Frame Size: {len(frame)}')
 
 if __name__ == '__main__':
-    event_bus = EventBus()
-    event_bus.add_listener(EventBus.VIDEO_FRAME, on_video_frame_received)
+    # event_bus = EventBus()
+    # event_bus.add_listener(EventBus.VIDEO_FRAME, on_video_frame_received)
 
-    shutdown = multiprocessing.Event()
+    with multiprocessing.Manager() as manager:
+        db = manager.dict()
+        db[FRAME] = ''
 
-    p = multiprocessing.Process(target=video_receiver, args=(event_bus, shutdown))
+        shutdown = multiprocessing.Event()
 
-    p.start()
+        p = multiprocessing.Process(target=video_receiver, args=(db, shutdown))
 
-    # Ctrl+C to stop main
-    try:
-        while True:
-            pass
-    finally:
-        shutdown.set()
+        p.start()
+
+        # Ctrl+C to stop main
+        try:
+            while True:
+                print(f'Frame Size: {len(db[FRAME])}')
+        finally:
+            print("Shutting down")
+            shutdown.set()
+            p.join()
 
 
     
