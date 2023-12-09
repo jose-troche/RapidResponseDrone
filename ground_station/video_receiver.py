@@ -5,6 +5,7 @@ import multiprocessing
 import numpy
 import signal
 import time
+import sigint_handler
 from database_keys import VIDEO_FRAME, SHUTDOWN
 from multiprocessing.managers import DictProxy
 
@@ -35,15 +36,8 @@ def video_receiver(db: DictProxy):
 # ---------------------------------------------------------------------
 # The following is only an example of how to call the video_receiver 
 # and how to get the video frames from the db
-shutdown = False
-def signal_handler(signum, frame):
-    print(f'SIGINT received at "{frame.f_code.co_name}" with signal {signum}')
-    global shutdown
-    shutdown = True
-signal.signal(signal.SIGINT, signal_handler)
 
-def image_processor(db: DictProxy):
-
+def image_processor_test(db: DictProxy):
     while not db.get(SHUTDOWN, False):
         print('Reading image frame with size', len(db.get(VIDEO_FRAME, '')))
         time.sleep(2)
@@ -56,13 +50,13 @@ if __name__ == '__main__':
 
         processes = [
             multiprocessing.Process(target=target, args=(db, ))
-            for target in [image_processor, video_receiver]
+            for target in [image_processor_test, video_receiver]
         ]
 
         for p in processes:
             p.start()
 
-        while not shutdown:
+        while not sigint_handler.shutdown_signal:
             print('Main process running')
             time.sleep(1)
 

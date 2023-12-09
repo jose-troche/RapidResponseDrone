@@ -3,13 +3,14 @@
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from http import HTTPStatus
 from multiprocessing.managers import DictProxy
-from typing import Any
 from urllib.parse import urlparse, parse_qs
-from database_keys import FRAME
+from database_keys import VIDEO_FRAME, SHUTDOWN
+from selectors import DefaultSelector, EVENT_READ
 import threading
 import socket
 import time
 import multiprocessing
+import sigint_handler
 
 TELLO_IP = "192.168.10.1"
 TELLO_COMMAND_PORT = 8889
@@ -42,10 +43,6 @@ class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory='webassets', **kwargs)
 
-    def log_message(self, format, *args):
-        if (not self.path.startswith('/video_frame') and 
-            not self.path == '/drone?command=rc%200.0000%200.0000%200.0000%200.0000'):
-            super().log_message(format, *args)
 
     def do_GET(self) -> None:
         global is_keep_alive_running
@@ -55,8 +52,10 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_response(HTTPStatus.MOVED_PERMANENTLY)
             self.send_header("Location", "/drone_pilot.html")
             self.end_headers()
-        elif path.endswith((".html", ".htm", ".js", ".jpg")):
+
+        elif path.endswith((".html", ".htm", ".js", ".css")):
             super().do_GET()
+
         elif path.startswith("/drone"):
             params = parse_qs(urlparse(path).query, max_num_fields=1)
             command = params['command'][0] if 'command' in params else ""
@@ -74,7 +73,7 @@ class Handler(SimpleHTTPRequestHandler):
                 send_to_tello(command)
 
         elif path.startswith("/video_frame"):
-            image_bytes = self.server.db[FRAME]
+            image_bytes = self.server.db.get(VIDEO_FRAME, b'')
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-type", "image/jpeg")
             self.send_header("Content-length", str(len(image_bytes)))
@@ -100,6 +99,13 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_error(HTTPStatus.NOT_FOUND, "Resource not found")
 
 
+    def log_message(self, format, *args):
+        # Filter out repetitive logs
+        if (not self.path.startswith('/video_frame') and 
+            not self.path == '/drone?command=rc%200.0000%200.0000%200.0000%200.0000'):
+            super().log_message(format, *args)
+
+
 class DroneHTTPServer(HTTPServer):
     def __init__(self,
                  server_address,
@@ -107,49 +113,47 @@ class DroneHTTPServer(HTTPServer):
                  db: DictProxy,
                  bind_and_activate: bool = True) -> None:
 
-        self.db = db
+        self.db = db # Add a reference to the db
         super().__init__(server_address, RequestHandlerClass, bind_and_activate)
 
 
-def webserver(db: DictProxy, shutdown: multiprocessing.Event):
+def webserver(db: DictProxy):
     HTTP_SERVER_PORT = 8000
     with DroneHTTPServer(('', HTTP_SERVER_PORT), Handler, db) as httpd:
         print(f'Drone HTTP server listening at port {HTTP_SERVER_PORT}')
-        #multiprocessing.Process(target=shutdown_webserver, args=(httpd, shutdown)).start()
-        httpd.serve_forever()
 
+        # From https://docs.python.org/3/library/signal.html
+        selector = DefaultSelector()
+        selector.register(httpd, EVENT_READ)
 
-def shutdown_webserver(httpd: HTTPServer, shutdown: multiprocessing.Event):
-    while not shutdown.is_set():
-        pass
+        while not db.get(SHUTDOWN, False):
+            for key, _ in selector.select():
+                if key.fileobj == httpd:
+                    httpd.handle_request()
 
-    print("Shuting down the webserver")
-    httpd.shutdown()
+        print(f'Shutting down the Webserver')
 
 
 # ---------------------------------------------------------------------
 # The following is only an example of how to start the webserver
 
-
 if __name__ == '__main__':
-    # event_bus = EventBus()
-    # event_bus.add_listener(EventBus.VIDEO_FRAME, on_video_frame_received)
 
     with multiprocessing.Manager() as manager:
         db = manager.dict()
-        db[FRAME] = b''
 
-        shutdown = multiprocessing.Event()
-
-        p = multiprocessing.Process(target=webserver, args=(db, shutdown))
-
+        p = multiprocessing.Process(target=webserver, args=(db, ))
         p.start()
 
-        # Ctrl+C to stop main
-        try:
-            while True:
-                pass
-        finally:
-            print("Shutting down")
-            shutdown.set()
-            p.join()
+        while not sigint_handler.shutdown_signal:
+            time.sleep(1)
+
+        print('Main process shutting down ...')
+
+        # Signal all subprocesses to shutdown
+        db[SHUTDOWN] = True
+        
+        # Wait for them to finish
+        p.join()
+
+        print('Shutdown complete')
