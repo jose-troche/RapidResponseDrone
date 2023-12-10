@@ -2,7 +2,6 @@
 
 import cv2
 import multiprocessing
-import numpy
 import time
 import sigint_handler
 from database import VIDEO_FRAME, SHUTDOWN, db_initialize
