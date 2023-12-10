@@ -4,39 +4,15 @@ from http.server import SimpleHTTPRequestHandler, HTTPServer
 from http import HTTPStatus
 from multiprocessing.managers import DictProxy
 from urllib.parse import urlparse, parse_qs
-from database import VIDEO_FRAME, SHUTDOWN, db_initialize
+from database import VIDEO_FRAME, SHUTDOWN, RECOGNIZED_OBJECTS, db_initialize
 from selectors import DefaultSelector, EVENT_READ
-import threading
-import socket
+from drone_commander import send_command_to_drone
 import time
+import json
 import multiprocessing
 import sigint_handler
 import video_frame
 
-TELLO_IP = "192.168.10.1"
-TELLO_COMMAND_PORT = 8889
-TELLO_COMMAND_ADDRESS = (TELLO_IP, TELLO_COMMAND_PORT)
-
-UDP_SOCKET = socket.socket(socket.AF_INET,    # Internet
-                           socket.SOCK_DGRAM) # UDP
-
-
-
-
-# Send a command to the drone via the UDP socket
-def send_to_tello(command: str):
-    UDP_SOCKET.sendto(command.encode(), TELLO_COMMAND_ADDRESS)
-
-
-# Send periodically a drone command to keep connection alive
-def keep_alive():
-    while True:
-        print("Sending keep alive")
-        send_to_tello("command")
-        time.sleep(10)
-
-
-is_keep_alive_running = False
 
 # The HTTP handler
 class Handler(SimpleHTTPRequestHandler):
@@ -49,57 +25,47 @@ class Handler(SimpleHTTPRequestHandler):
         global is_keep_alive_running
         path = self.path
 
-        if path == "/":
+        if path == '/':
             self.send_response(HTTPStatus.MOVED_PERMANENTLY)
-            self.send_header("Location", "/drone_pilot.html")
+            self.send_header('Location', '/drone_pilot.html')
             self.end_headers()
 
-        elif path.endswith((".html", ".htm", ".js", ".css")):
+        elif path.endswith(('.html', '.htm', '.js', '.css')):
             super().do_GET()
 
-        elif path.startswith("/drone"):
+        elif path.startswith('/drone'):
             params = parse_qs(urlparse(path).query, max_num_fields=1)
-            command = params['command'][0] if 'command' in params else ""
+            command = params['command'][0] if 'command' in params else ''
             self.send_response(HTTPStatus.OK)
             self.end_headers()
 
             if command: # Send command to tello drone if not empty
-                if command == "takeoff" and not is_keep_alive_running:
-                    is_keep_alive_running = True
-                    print("Starting keep alive daemon")
-                    threading.Thread(
-                        target=keep_alive, daemon=True).start()
-                    
+                send_command_to_drone(command)
 
-                send_to_tello(command)
-
-        elif path.startswith("/video_frame"):
+        elif path.startswith('/video_frame'):
             frame = self.server.db.get(VIDEO_FRAME)
             image = b'' if frame is None else video_frame.to_jpg(video_frame.resize(frame, 0.8))
 
             self.send_response(HTTPStatus.OK)
-            self.send_header("Content-type", "image/jpeg")
-            self.send_header("Content-length", str(len(image)))
-            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+            self.send_header('Content-type', 'image/jpeg')
+            self.send_header('Content-length', str(len(image)))
+            self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
             self.end_headers()
             self.wfile.write(image)
 
-        elif path.startswith("/events"):
+        elif path.startswith('/recognized_objects'):
+            recognized_objects = json.dumps(self.server.db[RECOGNIZED_OBJECTS]).encode()
+            self.server.db[RECOGNIZED_OBJECTS] = [] # Clear the recognized objects
+
             self.send_response(HTTPStatus.OK)
-            self.send_header("Content-type", "text/event-stream")
+            self.send_header('Content-type', 'application/json')
+            #self.send_header('Content-length', str(len(recognized_objects)))
+            self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
             self.end_headers()
-
-            # Send a message to the client.
-            self.wfile.write(b"data: Hello, world!\n\n")
-
-            # Keep the connection open.
-            while True:
-                time.sleep(1)
-                self.wfile.write((f"data: {time.time()} This is a message from the server.\n\n").encode())
-
+            self.wfile.write(recognized_objects)
 
         else:
-            self.send_error(HTTPStatus.NOT_FOUND, "Resource not found")
+            self.send_error(HTTPStatus.NOT_FOUND, 'Resource not found')
 
 
     def log_message(self, format, *args):
