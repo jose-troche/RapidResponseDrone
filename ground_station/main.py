@@ -4,6 +4,7 @@ import multiprocessing
 import sigint_handler
 import time
 from video_receiver import video_receiver
+from object_recognizer import object_recognizer
 from webserver import webserver
 from database import SHUTDOWN, db_initialize
 
@@ -15,7 +16,7 @@ if __name__ == '__main__':
 
         processes = [
             multiprocessing.Process(target=target, args=(db, ))
-            for target in [webserver, video_receiver]
+            for target in [webserver, video_receiver, object_recognizer]
         ]
 
         for p in processes:

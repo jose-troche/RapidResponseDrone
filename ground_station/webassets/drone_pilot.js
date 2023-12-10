@@ -18,7 +18,7 @@ function sendDroneCommand(command) {
 async function refreshRecognizedObjects() {
     const recognizedObjects = await (await fetch('/recognized_objects')).json();
     const element = document.getElementById('recognized_objects');
-    element.innerHTML = recognizedObjects.join()
+    element.innerHTML = recognizedObjects.length > 0 ? '<li>' + recognizedObjects.join('<li>') : '';
 }
 
 setInterval(refreshRecognizedObjects, 750);
