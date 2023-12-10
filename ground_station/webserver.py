@@ -11,6 +11,7 @@ import socket
 import time
 import multiprocessing
 import sigint_handler
+import video_frame
 
 TELLO_IP = "192.168.10.1"
 TELLO_COMMAND_PORT = 8889
@@ -73,13 +74,15 @@ class Handler(SimpleHTTPRequestHandler):
                 send_to_tello(command)
 
         elif path.startswith("/video_frame"):
-            image_bytes = self.server.db.get(VIDEO_FRAME, b'')
+            frame = self.server.db.get(VIDEO_FRAME)
+            image = b'' if frame is None else video_frame.to_jpg(video_frame.resize(frame, 0.8))
+
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-type", "image/jpeg")
-            self.send_header("Content-length", str(len(image_bytes)))
+            self.send_header("Content-length", str(len(image)))
             self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
             self.end_headers()
-            self.wfile.write(image_bytes)
+            self.wfile.write(image)
 
         elif path.startswith("/events"):
             self.send_response(HTTPStatus.OK)

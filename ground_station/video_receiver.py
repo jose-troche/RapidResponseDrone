@@ -19,9 +19,7 @@ def video_receiver(db: DictProxy):
             print('Trying to acquire video feed ...')
             capture = cv2.VideoCapture(VIDEO_URL)
         else:
-            image_encoded = cv2.imencode('.jpg', frame)[1]
-            image_bytes = (numpy.array(image_encoded)).tobytes()
-            db[VIDEO_FRAME] = image_bytes
+            db[VIDEO_FRAME] = frame
 
         is_frame_captured, frame = capture.read()
 
@@ -38,7 +36,8 @@ def video_receiver(db: DictProxy):
 
 def image_processor_test(db: DictProxy):
     while not db.get(SHUTDOWN, False):
-        print('Reading image frame with size', len(db.get(VIDEO_FRAME, '')))
+        frame = db[VIDEO_FRAME]
+        print('Reading image frame with size', 0 if frame is None else len(frame))
         time.sleep(2)
 
     print('Shutting down the Image Processor')

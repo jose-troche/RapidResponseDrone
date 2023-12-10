@@ -10,7 +10,7 @@ REPORT_GENERATED_QUEUE = 'REPORT_GENERATED_QUEUE'
 
 def db_initialize(db: DictProxy):
     db[SHUTDOWN] = False
-    db[VIDEO_FRAME] = b''
+    db[VIDEO_FRAME] = None
     db[OBJECT_RECOGNITION_QUEUE] = None
     db[VOICE_COMMAND_QUEUE] = None
     db[REPORT_GENERATED_QUEUE] = None
