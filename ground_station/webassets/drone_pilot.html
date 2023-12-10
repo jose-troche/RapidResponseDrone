@@ -9,14 +9,16 @@
   <script type="text/javascript" src="drone_pilot.js"></script>
 </head>
 
-<body>
-  <h1 id="start">Drone Pilot</h1>
+<body style="background-color: rgb(242, 242, 249); font-family: Arial, Helvetica, sans-serif;">
+  
 
-  <img id="video_frame" src="/video_frame" alt="video" onerror="this.src=''"/>
+  <div class="row" style="display: flex; margin-left: 20px;">
 
+  <div style="width: 28%">
+  <h1 style="margin-top: 10px">Drone Pilot</h1>
   <!-- Gamepad -->
   <div>
-    <svg width="350" viewBox="0 0 441 383" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width="350" viewBox="0 30 441 383" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g id="XBox">
         <path id="LOutline"
           d="M220.5 294.5C220.5 294.5 195 294.5 150 294.5C105 294.5 81.5 378.5 49.5 378.5C17.5 378.5 4 363.9 4 317.5C4 271.1 43.5 165.5 55 137.5C66.5 109.5 95.5 92.0001 128 92.0001C154 92.0001 200.5 92.0001 220.5 92.0001"
@@ -26,9 +28,8 @@
           stroke="hsl(210,50%,85%)" stroke-width="3" stroke-opacity="1"></path>
         <circle id="LStickOutline" cx="113" cy="160" r="37.5" stroke="hsl(210,50%,85%)" stroke-opacity="1"
           stroke-width="3"></circle>
-        <a xlink:href="https://en.wikipedia.org/wiki/Bullseye_(target)" >
-          <circle id="LeftStick" cx="113" cy="160" r="28" fill="rgba(0,0,0,0)" stroke="rgba(0,0,0,1)" stroke-width="3" />
-        </a>
+        <circle id="LeftStick" cx="113" cy="160" r="28" fill="rgba(0,0,0,0)" stroke="rgba(0,0,0,1)" stroke-width="3" />
+        
         <circle id="RStickOutline" cx="278" cy="238" r="37.5" stroke="hsl(210,50%,85%)" stroke-opacity="1"
           stroke-width="3"></circle>
         <circle id="RightStick" cx="278" cy="238" r="28" fill="rgba(0,0,0,0)" stroke="rgba(0,0,0,1)" stroke-width="3">
@@ -146,6 +147,17 @@
     </svg>
   </div>
   <!-- END of Gamepad -->
+
+  <h3>Recognized Objects</h3>
+  <div id="recognized_objects"></div>
+
+  </div>
+
+  <img style="flex-grow: 1; border-style: groove; border-color: gainsboro; border-width: 4px; border-radius: 8px;" 
+  id="video_frame" src="/video_frame" alt="video" onerror="this.src=''"/>
+  </div>
+
+  
 
 </body>
 </html>

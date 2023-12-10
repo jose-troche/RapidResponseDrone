@@ -44,11 +44,10 @@ class Handler(SimpleHTTPRequestHandler):
 
         elif path.startswith('/video_frame'):
             frame = self.server.db.get(VIDEO_FRAME)
-            image = b'' if frame is None else video_frame.to_jpg(video_frame.resize(frame, 0.8))
+            image = b'' if frame is None else video_frame.to_jpg(frame)
 
             self.send_response(HTTPStatus.OK)
             self.send_header('Content-type', 'image/jpeg')
-            self.send_header('Content-length', str(len(image)))
             self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
             self.end_headers()
             self.wfile.write(image)
@@ -59,7 +58,6 @@ class Handler(SimpleHTTPRequestHandler):
 
             self.send_response(HTTPStatus.OK)
             self.send_header('Content-type', 'application/json')
-            #self.send_header('Content-length', str(len(recognized_objects)))
             self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
             self.end_headers()
             self.wfile.write(recognized_objects)
@@ -70,7 +68,8 @@ class Handler(SimpleHTTPRequestHandler):
 
     def log_message(self, format, *args):
         # Filter out repetitive logs
-        if (not self.path.startswith('/video_frame') and 
+        if (not self.path.startswith('/video_frame') and
+            not self.path.startswith('/recognized_objects') and
             not self.path == '/drone?command=rc%200.0000%200.0000%200.0000%200.0000'):
             super().log_message(format, *args)
 
