@@ -19,7 +19,8 @@ def object_recognizer(db: DictProxy):
 
     # Start laser_commander
     laser_queue = Queue()
-    threading.Thread(target=laser_commander, args=(laser_queue,)).start()
+    laser_threat = threading.Thread(target=laser_commander, args=(laser_queue,))
+    laser_threat.start()
   
     while not db[SHUTDOWN]:
         frame = db[VIDEO_FRAME]
@@ -31,14 +32,17 @@ def object_recognizer(db: DictProxy):
                     Image={'Bytes': image_bytes},
                     MinConfidence=77.5
                 )
-                recognized_objects = [ label['Name'].lower().strip() for label in response['Labels'] ]
-                db[RECOGNIZED_OBJECTS] = recognized_objects
-            except:
-                print('Error when calling AWS Rekognition')
+                recognized_objects_list = [ label['Name'].lower().strip() for label in response['Labels'] ]
+                db[RECOGNIZED_OBJECTS] = recognized_objects_list
 
-            if recognized_objects in db[SEARCHED_OBJECTS]:
-                # Turn on laser
-                laser_queue.put_nowait(1)
+                for object in recognized_objects_list:
+                    if object in db[SEARCHED_OBJECTS]:
+                        # Turn on laser
+                        laser_queue.put_nowait(1)
+                        break
+
+            except Exception as e:
+                print('Error when calling AWS Rekognition', e)
 
         time.sleep(0.75)
 
