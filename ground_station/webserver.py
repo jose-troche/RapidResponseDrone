@@ -4,7 +4,7 @@ from http.server import SimpleHTTPRequestHandler, HTTPServer
 from http import HTTPStatus
 from multiprocessing.managers import DictProxy
 from urllib.parse import urlparse, parse_qs
-from database import VIDEO_FRAME, SHUTDOWN, RECOGNIZED_OBJECTS, db_initialize
+from database import VIDEO_FRAME, SHUTDOWN, RECOGNIZED_OBJECTS, SEARCHED_OBJECTS, db_initialize
 from selectors import DefaultSelector, EVENT_READ
 from drone_commander import send_command_to_drone
 import time
@@ -22,7 +22,6 @@ class Handler(SimpleHTTPRequestHandler):
 
 
     def do_GET(self) -> None:
-        global is_keep_alive_running
         path = self.path
 
         if path == '/':
@@ -42,8 +41,17 @@ class Handler(SimpleHTTPRequestHandler):
             if command: # Send command to tello drone if not empty
                 send_command_to_drone(command)
 
+        elif path.startswith('/set_search_objects'):
+            params = parse_qs(urlparse(path).query, max_num_fields=1)
+            search_objects_csv = params['search_objects'][0] if 'search_objects' in params else ''
+            self.send_response(HTTPStatus.OK)
+            self.end_headers()
+
+            if search_objects_csv:
+                self.server.db[SEARCHED_OBJECTS] = set([x.lower().strip() for x in search_objects_csv.split(',')])
+
         elif path.startswith('/video_frame'):
-            frame = self.server.db.get(VIDEO_FRAME)
+            frame = self.server.db[VIDEO_FRAME]
             image = b'' if frame is None else video_frame.to_jpg(frame)
 
             self.send_response(HTTPStatus.OK)

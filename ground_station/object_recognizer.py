@@ -3,16 +3,23 @@
 import multiprocessing
 import time
 import sigint_handler
+import threading
 import boto3
 import video_frame
+from queue import Queue
 from video_receiver import video_receiver
-from database import VIDEO_FRAME, SHUTDOWN, RECOGNIZED_OBJECTS, db_initialize
+from laser_commander import laser_commander
+from database import VIDEO_FRAME, SHUTDOWN, RECOGNIZED_OBJECTS, SEARCHED_OBJECTS, db_initialize
 from multiprocessing.managers import DictProxy
 
 # Gets the current video frame and sends it to rekognition for object/label detection
 # Updates the db with the objects recognized/detected
 def object_recognizer(db: DictProxy):
     rekognition = boto3.client('rekognition', region_name='us-east-2')
+
+    # Start laser_commander
+    laser_queue = Queue()
+    threading.Thread(target=laser_commander, args=(laser_queue,)).start()
   
     while not db[SHUTDOWN]:
         frame = db[VIDEO_FRAME]
@@ -28,6 +35,10 @@ def object_recognizer(db: DictProxy):
                 db[RECOGNIZED_OBJECTS] = recognized_objects
             except:
                 print('Error when calling AWS Rekognition')
+
+            if recognized_objects in db[SEARCHED_OBJECTS]:
+                # Turn on laser
+                laser_queue.put_nowait(1)
 
         time.sleep(0.75)
 

@@ -24,3 +24,13 @@ async function refreshRecognizedObjects() {
 }
 
 setInterval(refreshRecognizedObjects, 750);
+
+// -------------------------------- Set searched objects ------------------------------------
+
+
+function setSearchObjects(){
+    const searched_objects = document.getElementById('searched_objects').value;
+    if (searched_objects) {
+        fetch(`/set_search_objects?search_objects=${searched_objects}`);
+    }
+};
