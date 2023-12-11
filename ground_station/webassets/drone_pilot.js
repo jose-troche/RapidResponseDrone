@@ -15,6 +15,7 @@ function sendDroneCommand(command) {
 }
 
 
+// --------------------------------  Recognized Objects ------------------------------------
 async function refreshRecognizedObjects() {
     const recognizedObjects = await (await fetch('/recognized_objects')).json();
     if (recognizedObjects.length > 0) {
@@ -22,12 +23,18 @@ async function refreshRecognizedObjects() {
         element.innerHTML = '<li>' + recognizedObjects.join('<li>');
     }
 }
-
 setInterval(refreshRecognizedObjects, 750);
 
-// -------------------------------- Set searched objects ------------------------------------
+// --------------------------------  Refresh Fire Laser ------------------------------------
+async function refreshFireLaser() {
+    const fireLaser = await (await fetch('/fire_laser')).json();
+    const fire = document.getElementById('fire');
+    fire.style.display = fireLaser ? 'block' : 'none';
+}
+setInterval(refreshFireLaser, 200);
 
 
+// -------------------------------- Set Searched Objects ------------------------------------
 function setSearchObjects(){
     const searched_objects = document.getElementById('searched_objects').value;
     if (searched_objects) {

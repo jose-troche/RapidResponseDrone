@@ -4,7 +4,7 @@ from http.server import SimpleHTTPRequestHandler, HTTPServer
 from http import HTTPStatus
 from multiprocessing.managers import DictProxy
 from urllib.parse import urlparse, parse_qs
-from database import VIDEO_FRAME, SHUTDOWN, RECOGNIZED_OBJECTS, SEARCHED_OBJECTS, db_initialize
+from database import VIDEO_FRAME, SHUTDOWN, RECOGNIZED_OBJECTS, SEARCHED_OBJECTS, FIRE_LASER, db_initialize
 from selectors import DefaultSelector, EVENT_READ
 from drone_commander import send_command_to_drone
 import time
@@ -70,6 +70,16 @@ class Handler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(recognized_objects)
 
+        elif path.startswith('/fire_laser'):
+            self.send_response(HTTPStatus.OK)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            self.end_headers()
+            self.wfile.write(json.dumps(self.server.db[FIRE_LASER]).encode())
+
+            if self.server.db[FIRE_LASER]: # Clear state as soon as received
+                self.server.db[FIRE_LASER] = False
+
         else:
             self.send_error(HTTPStatus.NOT_FOUND, 'Resource not found')
 
@@ -78,6 +88,7 @@ class Handler(SimpleHTTPRequestHandler):
         # Filter out repetitive logs
         if (not self.path.startswith('/video_frame') and
             not self.path.startswith('/recognized_objects') and
+            not self.path.startswith('/fire_laser') and
             not self.path == '/drone?command=rc%200.0000%200.0000%200.0000%200.0000'):
             super().log_message(format, *args)
 

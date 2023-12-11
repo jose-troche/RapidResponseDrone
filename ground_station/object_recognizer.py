@@ -8,7 +8,7 @@ import boto3
 import video_frame
 from video_receiver import video_receiver
 from laser_commander import start_laser_commander
-from database import VIDEO_FRAME, SHUTDOWN, RECOGNIZED_OBJECTS, SEARCHED_OBJECTS, db_initialize
+from database import VIDEO_FRAME, SHUTDOWN, RECOGNIZED_OBJECTS, SEARCHED_OBJECTS, FIRE_LASER, db_initialize
 from multiprocessing.managers import DictProxy
 
 # Gets the current video frame and sends it to rekognition for object/label detection
@@ -40,6 +40,7 @@ def object_recognizer(db: DictProxy):
                             laser_commander_thread = start_laser_commander(fire_event)
                             time.sleep(0.5)
                         fire_event.set()
+                        db[FIRE_LASER] = True
                         break
 
             except Exception as e:
