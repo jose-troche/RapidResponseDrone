@@ -3,58 +3,69 @@
 import threading
 import time
 import asyncio
-from queue import Queue
+import sigint_handler
 from bleak import BleakClient, BleakScanner
 
 
-UART_SERVICE_UUID = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
-UART_TX_CHAR_UUID = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
+def laser_commander(fire_event: threading.Event):
+    UART_SERVICE_UUID = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
+    UART_TX_CHAR_UUID = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
 
-def handle_disconnect(client: BleakClient):
-    print("Device was disconnected")
-
-
-def laser_commander(queue: Queue):
-    device = None
     loop = asyncio.new_event_loop()
 
+    def handle_disconnect(_: BleakClient):
+        print("LASER device was disconnected. Cancelling all tasks in the asyncio loop")
+        for task in asyncio.all_tasks(loop):
+            task.cancel()
+
     try:
-        while True:
-
+        device = None
+        while device is None:
             print("Scanning to find a LASER device ...")
-            
-            device = loop.run_until_complete(BleakScanner.find_device_by_name('LASER', timeout=4.0))
+            device = loop.run_until_complete(BleakScanner.find_device_by_name('LASER'))
 
-            if device is None:
-                print("No LASER device found. Will try again later")    
-            else:
-                client = BleakClient(device, disconnected_callback=handle_disconnect)
-                loop.run_until_complete(client.connect())
-                print("Connected to LASER device")
+        client = BleakClient(device, disconnected_callback=handle_disconnect)
+        loop.run_until_complete(client.connect())
+        print("Connected to LASER device")
 
-                uart = client.services.get_service(UART_SERVICE_UUID)
-                tx_characteristic = uart.get_characteristic(UART_TX_CHAR_UUID)
+        uart = client.services.get_service(UART_SERVICE_UUID)
+        tx_characteristic = uart.get_characteristic(UART_TX_CHAR_UUID)
 
-                while client:
-                    # Wait for an item in the queue
-                    queue.get() 
+        while client:
+            # Wait for a fire event
+            fire_event.wait()
 
-                    # Send a fire command to the laser: 'on' followed by the number of on/off cycles
-                    print("Firing LASER")
-                    loop.run_until_complete(client.write_gatt_char(tx_characteristic, b'on 6', response=False))
+            # Send a fire command to the laser: 'on' followed by the number of on/off cycles
+            print("LASER ON")
+            loop.run_until_complete(client.write_gatt_char(tx_characteristic, b'on 4', response=False))
 
-                    queue.task_done()
+            fire_event.clear()
 
-            time.sleep(1)
+        print('Shutting down the Laser Commander')
+
+    except asyncio.CancelledError:
+        print("LASER: all tasks in asyncio loop have been cancelled")
     finally:
-        print("Closing asyncio loop")
+        print("LASER: closing asyncio loop")
         loop.close()
 
+
+def start_laser_commander(fire_event: threading.Event):
+    laser_commander_thread = threading.Thread(target=laser_commander, args=(fire_event,), daemon=True)
+    laser_commander_thread.start()
+    return laser_commander_thread
+
+
 if __name__ == "__main__":
-    queue = Queue()
+    fire_event = threading.Event()
 
-    threading.Thread(target=laser_commander, args=(queue,)).start()
+    while not sigint_handler.shutdown_signal:
+        print("Starting LASER commander thread")
+        laser_commander_thread = start_laser_commander(fire_event)
 
-    while True:
-        queue.put_nowait(1)
-        time.sleep(4)
+        while laser_commander_thread.is_alive() and not sigint_handler.shutdown_signal:
+            print("Time", int(time.monotonic()))
+            fire_event.set()
+            time.sleep(5)
+
+    print('Main process shutting down')

@@ -1,6 +1,4 @@
 import socket
-import time
-import threading
 
 TELLO_IP = '192.168.10.1'
 TELLO_COMMAND_PORT = 8889
@@ -17,14 +15,4 @@ def send_command_to_drone(command: str):
 
     UDP_SOCKET.sendto(command.encode(), TELLO_COMMAND_ADDRESS)
 
-
-# Send periodically a drone command to keep connection alive
-def keep_alive():
-    while True:
-        print('Sending keep alive "command" to drone')
-        send_command_to_drone('command')
-        time.sleep(10)
-
-# print('Starting keep alive thread')
-# threading.Thread(target=keep_alive, daemon=False).start()
 
