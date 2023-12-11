@@ -31,7 +31,7 @@ async function refreshFireLaser() {
     const fire = document.getElementById('fire');
     fire.style.display = fireLaser ? 'block' : 'none';
 }
-setInterval(refreshFireLaser, 200);
+setInterval(refreshFireLaser, 400);
 
 
 // -------------------------------- Set Searched Objects ------------------------------------
