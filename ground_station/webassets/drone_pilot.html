@@ -153,8 +153,8 @@
       <h3>Searched Objects</h3>
       <input id="searched_objects" value="plant,f35"></input>
       <button onclick="setSearchObjects()">Set</button>
-      <span id="fire" style="display: inline; background-color: red; text-align: center; color: white;
-                            font-weight: bolder; margin-left: 20px; padding: 2px 10px;">
+      <span id="fire" style="display: none; background-color: red; text-align: center; color: white;
+                            font-weight: bolder; margin-left: 20px; padding: 2px 10px; width: 100px;">
             FIRE
       </span>
 
@@ -165,7 +165,8 @@
 
     <!-- Right column -->
     <!-- Video -->
-    <img style="border: 5px ridge lightgray; border-radius: 8px; margin: 10px; margin-left: auto;"
+    <img style="border: 5px ridge lightgray; border-radius: 8px; margin: 10px;
+      margin-left: auto; height: fit-content; width: fit-content;"
     id="video_frame" src="/video_frame" alt="video" onerror="this.src=''"/>
 
   </div>

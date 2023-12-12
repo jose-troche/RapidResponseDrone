@@ -11,7 +11,7 @@ async function refreshRecognizedObjects() {
     const recognizedObjects = await (await fetch('/recognized_objects')).json();
     if (recognizedObjects.length > 0) {
         const element = document.getElementById('recognized_objects');
-        element.innerHTML = '<li>' + recognizedObjects.join('<li>');
+        element.innerHTML = '<li>' + recognizedObjects.slice(0,10).join('<li>');
     }
 }
 setInterval(refreshRecognizedObjects, 750);
@@ -20,7 +20,7 @@ setInterval(refreshRecognizedObjects, 750);
 async function refreshFireLaser() {
     const fireLaser = await (await fetch('/fire_laser')).json();
     const fire = document.getElementById('fire');
-    fire.style.display = fireLaser ? 'block' : 'none';
+    fire.style.display = fireLaser ? 'inline' : 'none';
 }
 setInterval(refreshFireLaser, 400);
 
@@ -32,6 +32,17 @@ function setSearchObjects(){
         fetch(`/set_search_objects?search_objects=${searched_objects}`);
     }
 };
+
+// ---------------------------- Window event handlers ------------------------------
+window.onload = () => {
+    setSearchObjects();
+};
+window.onkeydown = (event) => {
+    if (event.key === "Enter") {
+        event.preventDefault(); // Cancel the default action, if needed
+        setSearchObjects()
+    }
+}
 
 // ------------------------  Send Drone commands mapped from GamePad ------------------------------
 //   Drone commands conform to:
