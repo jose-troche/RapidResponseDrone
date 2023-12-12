@@ -32,6 +32,7 @@ function setSearchObjects(){
         fetch(`/set_search_objects?search_objects=${searched_objects}`);
     }
 };
+setInterval(setSearchObjects, 1000); // Automatic submission
 
 // ---------------------------- Window event handlers ------------------------------
 window.onload = () => {
