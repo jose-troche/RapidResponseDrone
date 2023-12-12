@@ -50,6 +50,15 @@ class Handler(SimpleHTTPRequestHandler):
             if search_objects_csv:
                 self.server.db[SEARCHED_OBJECTS] = set([x.lower().strip() for x in search_objects_csv.split(',')])
 
+        elif path.startswith('/get_search_objects'):
+            searched_objects = json.dumps(list(self.server.db[SEARCHED_OBJECTS])).encode()
+
+            self.send_response(HTTPStatus.OK)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            self.end_headers()
+            self.wfile.write(searched_objects)
+
         elif path.startswith('/video_frame'):
             frame = self.server.db[VIDEO_FRAME]
             image = b'' if frame is None else video_frame.to_jpg(frame)
@@ -89,6 +98,7 @@ class Handler(SimpleHTTPRequestHandler):
         if (not self.path.startswith('/video_frame') and
             not self.path.startswith('/recognized_objects') and
             not self.path.startswith('/fire_laser') and
+            not self.path.startswith('/get_search_objects') and
             not self.path == '/drone?command=rc%200.0000%200.0000%200.0000%200.0000'):
             super().log_message(format, *args)
 

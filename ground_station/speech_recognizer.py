@@ -27,36 +27,41 @@ class MyEventHandler(TranscriptResultStreamHandler):
 
         valid_set_commands = ["take off",
                                 "land",
-                                "move left",
-                                "move right",
-                                "move forward",
-                                "move backward",
-                                "move up",
-                                "move down"
-                                "turn right",
-                                "turn left",
+                                "go left",
+                                "go right",
+                                "go forward",
+                                "go back",
+                                "go backward",
+                                "go up",
+                                "go higher",
+                                "go lower",
+                                "go down",
                                 "flip left",
                                 "flip right",
                                 "flip forward",
                                 "flip back",
                                 "start video",
                                 "stop video",
-                                "emergency"]
+                                "emergency",
+                                "alert"]
         
-        DISTANCE_CM = "20"
-        ANGLE = "100" # deg * 10
+        DISTANCE_CM = 30
+        ANGLE = 20 # deg
         
         voice_to_drone_commands = {
             "take off": "takeoff",
             "land": "land",
-            "move left": f"left {DISTANCE_CM}",
-            "move right": f"right {DISTANCE_CM}",
-            "move forward": f"forward {DISTANCE_CM}",
-            "move backward": f"back {DISTANCE_CM}",
-            "move up": f"up {DISTANCE_CM}",
-            "move down": f"down {DISTANCE_CM}",
-            "turn right": f"cw {ANGLE}",
-            "turn left": f"ccw {ANGLE}",
+            #"go left": f"left {DISTANCE_CM}",
+            #"go right": f"right {DISTANCE_CM}",
+            "go forward": f"forward {DISTANCE_CM}",
+            "go back": f"back {DISTANCE_CM}",
+            "go backward": f"back {DISTANCE_CM}",
+            "go higher": f"up {DISTANCE_CM + 20}",
+            "go up": f"up {DISTANCE_CM + 20}",
+            "go lower": f"down {DISTANCE_CM + 20}",
+            "go down": f"down {DISTANCE_CM + 20}",
+            "go right": f"cw {ANGLE}",
+            "go left": f"ccw {ANGLE}",
             "flip left": "flip l",
             "flip right": "flip r",
             "flip forward": "flip f",
@@ -64,6 +69,7 @@ class MyEventHandler(TranscriptResultStreamHandler):
             "start video": "streamon",
             "stop video": "streamoff",
             "emergency": "emergency",
+            "alert": "emergency",
         }
 
         valid_open_commands = ["target"]
@@ -80,7 +86,8 @@ class MyEventHandler(TranscriptResultStreamHandler):
                     self.last_command = substring
                     self.db[VOICE_COMMAND] = voice_command = substring
 
-                    send_command_to_drone(voice_to_drone_commands[voice_command])
+                    print(f"Sending voice command :{voice_command}")
+                    #send_command_to_drone(voice_to_drone_commands[voice_command])
 
             # Open commands
             for substring in valid_open_commands:
@@ -88,11 +95,12 @@ class MyEventHandler(TranscriptResultStreamHandler):
                     if substring == self.last_command:
                         return
                     res = command.lower().split(substring, 1)
-                    attribute = res[1].replace(".","")
-                    self.db[VOICE_COMMAND] = substring + attribute
+                    target = res[1].replace(".","").trim()
+                    self.db[VOICE_COMMAND] = substring + target
 
-                    if attribute:
-                        self.db[SEARCHED_OBJECTS] = attribute
+                    if target:
+                        print(f"Setting target to {target}")
+                        self.db[SEARCHED_OBJECTS] = set([target])
         else:
             self.last_command = None
 

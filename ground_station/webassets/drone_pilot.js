@@ -25,14 +25,21 @@ async function refreshFireLaser() {
 setInterval(refreshFireLaser, 400);
 
 
-// -------------------------------- Set Searched Objects ------------------------------------
+// -------------------------------- Set/get Searched Objects ------------------------------------
 function setSearchObjects(){
     const searched_objects = document.getElementById('searched_objects').value;
     if (searched_objects) {
         fetch(`/set_search_objects?search_objects=${searched_objects}`);
     }
 };
-setInterval(setSearchObjects, 1000); // Automatic submission
+
+async function refreshSearchObjects() {
+    const searched_objects = await (await fetch('/get_search_objects')).json();
+    if (searched_objects) {
+        document.getElementById('searched_objects').value = searched_objects.join(',')
+    }
+}
+setInterval(refreshSearchObjects, 800);
 
 // ---------------------------- Window event handlers ------------------------------
 window.onload = () => {
