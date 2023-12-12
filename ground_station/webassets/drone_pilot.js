@@ -67,6 +67,10 @@ function sendDroneCommandFromGamepadState() {
     else if (controller.buttons[2].pressed) command = "streamoff"; // Y
     else if (controller.buttons[6].pressed) command = "flip l"; // ZL
     else if (controller.buttons[7].pressed) command = "flip r"; // ZR
+    else if (controller.buttons[12].pressed) command = "up 40"; // ^
+    else if (controller.buttons[13].pressed) command = "down 40"; // v
+    else if (controller.buttons[14].pressed) command = "left 30"; // <-
+    else if (controller.buttons[15].pressed) command = "right 30"; // ->
     else { // Just send an rc command wth the axes data
       const MAX = 60, DECIMALS = 4;
       const a = (controller.axes[0]*MAX).toFixed(DECIMALS);
@@ -76,8 +80,13 @@ function sendDroneCommandFromGamepadState() {
       command = `rc ${a} ${b} ${c} ${d}`;
     }
 
-    // Send drone command to webserver
-    fetch(`/drone?command=${command}`);
+    sendDroneCommand(command);
   }
 }
 setInterval(sendDroneCommandFromGamepadState, 200);
+
+
+function sendDroneCommand(command) {
+  // Send drone command to webserver
+  fetch(`/drone?command=${command}`);
+}
