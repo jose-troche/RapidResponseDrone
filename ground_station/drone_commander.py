@@ -1,4 +1,5 @@
 import socket
+import time
 
 TELLO_IP = '192.168.10.1'
 TELLO_COMMAND_PORT = 8889
@@ -15,4 +16,13 @@ def send_command_to_drone(command: str):
 
     UDP_SOCKET.sendto(command.encode(), TELLO_COMMAND_ADDRESS)
 
+# Start this on a thread
+# Note: in experiments this created unstable behavior when sending commands
+def keep_drone_connection_alive():
+    while True:
+        try:
+            send_command_to_drone('command')
+            time.sleep(8)
+        except:
+            pass
 

@@ -86,8 +86,7 @@ class MyEventHandler(TranscriptResultStreamHandler):
                     self.last_command = substring
                     self.db[VOICE_COMMAND] = voice_command = substring
 
-                    print(f"Sending voice command :{voice_command}")
-                    #send_command_to_drone(voice_to_drone_commands[voice_command])
+                    send_command_to_drone(voice_to_drone_commands[voice_command])
 
             # Open commands
             for substring in valid_open_commands:
@@ -95,7 +94,7 @@ class MyEventHandler(TranscriptResultStreamHandler):
                     if substring == self.last_command:
                         return
                     res = command.lower().split(substring, 1)
-                    target = res[1].replace(".","").trim()
+                    target = res[1].replace(".","").strip()
                     self.db[VOICE_COMMAND] = substring + target
 
                     if target:
