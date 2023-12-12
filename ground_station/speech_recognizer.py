@@ -3,13 +3,14 @@
 import time
 import multiprocessing
 import sigint_handler
-from database import SHUTDOWN, VOICE_COMMAND, db_initialize
+from database import SHUTDOWN, VOICE_COMMAND, SEARCHED_OBJECTS, db_initialize
 from multiprocessing.managers import DictProxy
 import asyncio
 import sounddevice
 from amazon_transcribe.client import TranscribeStreamingClient
 from amazon_transcribe.handlers import TranscriptResultStreamHandler
 from amazon_transcribe.model import TranscriptEvent
+from drone_commander import send_command_to_drone
 
 # Captures spoken sound and converts speech to text commands
 # This requires AWS transcribe:StartStreamTranscription permissions
@@ -20,29 +21,68 @@ def speech_recognizer(db: DictProxy):
 
     print("Shutting down the Speech Recognizer")
 
+
 class MyEventHandler(TranscriptResultStreamHandler):
     async def handle_transcript_event(self, transcript_event: TranscriptEvent):
 
         valid_set_commands = ["take off",
-                              "land",
-                              "move left",
-                              "move right",
-                              "move forward",
-                              "move backward",
-                              "turn right",
-                              "turn left"]
+                                "land",
+                                "move left",
+                                "move right",
+                                "move forward",
+                                "move backward",
+                                "move up",
+                                "move down"
+                                "turn right",
+                                "turn left",
+                                "flip left",
+                                "flip right",
+                                "flip forward",
+                                "flip back",
+                                "start video",
+                                "stop video",
+                                "emergency"]
+        
+        DISTANCE_CM = "20"
+        ANGLE = "100" # deg * 10
+        
+        voice_to_drone_commands = {
+            "take off": "takeoff",
+            "land": "land",
+            "move left": f"left {DISTANCE_CM}",
+            "move right": f"right {DISTANCE_CM}",
+            "move forward": f"forward {DISTANCE_CM}",
+            "move backward": f"back {DISTANCE_CM}",
+            "move up": f"up {DISTANCE_CM}",
+            "move down": f"down {DISTANCE_CM}",
+            "turn right": f"cw {ANGLE}",
+            "turn left": f"ccw {ANGLE}",
+            "flip left": "flip l",
+            "flip right": "flip r",
+            "flip forward": "flip f",
+            "flip back": "flip b",
+            "start video": "streamon",
+            "stop video": "streamoff",
+            "emergency": "emergency",
+        }
 
         valid_open_commands = ["target"]
 
         results = transcript_event.transcript.results
         if len(results):
             command = results[0].alternatives[0].transcript
+
+            # Drone commands
             for substring in valid_set_commands:
                 if substring in command.lower():
                     if substring == self.last_command:
                         return
                     self.last_command = substring
-                    self.db[VOICE_COMMAND] = substring
+                    self.db[VOICE_COMMAND] = voice_command = substring
+
+                    send_command_to_drone(voice_to_drone_commands[voice_command])
+
+            # Open commands
             for substring in valid_open_commands:
                 if substring in command.lower():
                     if substring == self.last_command:
@@ -50,6 +90,9 @@ class MyEventHandler(TranscriptResultStreamHandler):
                     res = command.lower().split(substring, 1)
                     attribute = res[1].replace(".","")
                     self.db[VOICE_COMMAND] = substring + attribute
+
+                    if attribute:
+                        self.db[SEARCHED_OBJECTS] = attribute
         else:
             self.last_command = None
 
