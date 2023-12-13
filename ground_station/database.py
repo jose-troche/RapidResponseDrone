@@ -8,14 +8,18 @@ SEARCHED_OBJECTS = 'SEARCHED_OBJECTS'
 FIRE_LASER = 'FIRE_LASER'
 VOICE_COMMAND = 'VOICE_COMMAND'
 REPORT_GENERATED = 'REPORT_GENERATED'
+LAST_DRONE_COMMAND = 'LAST_DRONE_COMMAND'
+DRONE_TELEMETRY = 'DRONE_TELEMETRY'
 
 
 def db_initialize(db: DictProxy):
     db[SHUTDOWN] = False
     db[VIDEO_FRAME] = None
     db[RECOGNIZED_OBJECTS] = []
-    db[SEARCHED_OBJECTS] = set(['plant', 'f35'])
+    db[SEARCHED_OBJECTS] = set(['laptop', 'f35'])
     db[FIRE_LASER] = False
     db[VOICE_COMMAND] = None
     db[REPORT_GENERATED] = None
+    db[LAST_DRONE_COMMAND] = None
+    db[DRONE_TELEMETRY] = {'bat': '100'}
 

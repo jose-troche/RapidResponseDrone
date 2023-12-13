@@ -6,6 +6,7 @@ import time
 from video_receiver import video_receiver
 from object_recognizer import object_recognizer
 from speech_recognizer import speech_recognizer
+from drone_commander import drone_telemetry_listener
 from webserver import webserver
 from database import SHUTDOWN, db_initialize
 
@@ -17,7 +18,13 @@ if __name__ == '__main__':
 
         processes = [
             multiprocessing.Process(target=target, args=(db, ))
-            for target in [webserver, video_receiver, object_recognizer, speech_recognizer]
+            for target in [
+                webserver,
+                video_receiver,
+                object_recognizer,
+                speech_recognizer,
+                drone_telemetry_listener
+            ]
         ]
 
         for p in processes:

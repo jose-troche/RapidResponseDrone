@@ -11,7 +11,7 @@ async function refreshRecognizedObjects() {
     const recognizedObjects = await (await fetch('/recognized_objects')).json();
     if (recognizedObjects.length > 0) {
         const element = document.getElementById('recognized_objects');
-        element.innerHTML = '<li>' + recognizedObjects.slice(0,10).join('<li>');
+        element.innerHTML = '<li>' + recognizedObjects.join('<li>');
     }
 }
 setInterval(refreshRecognizedObjects, 750);
@@ -27,19 +27,28 @@ setInterval(refreshFireLaser, 400);
 
 // -------------------------------- Set/get Searched Objects ------------------------------------
 function setSearchObjects(){
-    const searched_objects = document.getElementById('searched_objects').value;
-    if (searched_objects) {
-        fetch(`/set_search_objects?search_objects=${searched_objects}`);
+    const searched_objects_input = document.getElementById('searched_objects_input').value;
+    if (searched_objects_input) {
+        fetch(`/set_search_objects?search_objects=${searched_objects_input}`);
     }
 };
 
 async function refreshSearchObjects() {
     const searched_objects = await (await fetch('/get_search_objects')).json();
     if (searched_objects) {
-        document.getElementById('searched_objects').value = searched_objects.join(',')
+        document.getElementById('searched_objects').innerHTML = '<li>' + searched_objects.join('<li>')
     }
 }
 setInterval(refreshSearchObjects, 800);
+
+// --------------------------------  Drone telemetry ------------------------------------
+async function refreshDroneTelemetry() {
+    const drone_telemetry = await (await fetch('/info')).json();
+    const telemetry_element = document.getElementById('drone_telemetry');
+    telemetry_element.innerText = `Battery: ${drone_telemetry.bat}%, Height: ${drone_telemetry.h || '0'} cm`;
+}
+setInterval(refreshDroneTelemetry, 1000);
+
 
 // ---------------------------- Window event handlers ------------------------------
 window.onload = () => {

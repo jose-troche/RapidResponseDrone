@@ -4,7 +4,8 @@ from http.server import SimpleHTTPRequestHandler, HTTPServer
 from http import HTTPStatus
 from multiprocessing.managers import DictProxy
 from urllib.parse import urlparse, parse_qs
-from database import VIDEO_FRAME, SHUTDOWN, RECOGNIZED_OBJECTS, SEARCHED_OBJECTS, FIRE_LASER, db_initialize
+from database import (VIDEO_FRAME, SHUTDOWN, RECOGNIZED_OBJECTS, SEARCHED_OBJECTS,
+                      FIRE_LASER, LAST_DRONE_COMMAND, DRONE_TELEMETRY, db_initialize)
 from selectors import DefaultSelector, EVENT_READ
 from drone_commander import send_command_to_drone
 import time
@@ -39,7 +40,12 @@ class Handler(SimpleHTTPRequestHandler):
             self.end_headers()
 
             if command: # Send command to tello drone if not empty
-                send_command_to_drone(command)
+                if not self.server.db[LAST_DRONE_COMMAND] == command:
+                    self.server.db[LAST_DRONE_COMMAND] = command
+                    print(f'Drone command: {command}')
+                    send_command_to_drone(command)
+                else:
+                    send_command_to_drone('stop')
 
         elif path.startswith('/set_search_objects'):
             params = parse_qs(urlparse(path).query, max_num_fields=1)
@@ -58,6 +64,15 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
             self.end_headers()
             self.wfile.write(searched_objects)
+
+        elif path.startswith('/info'):
+            drone_telemetry = json.dumps(self.server.db[DRONE_TELEMETRY]).encode()
+
+            self.send_response(HTTPStatus.OK)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            self.end_headers()
+            self.wfile.write(drone_telemetry)
 
         elif path.startswith('/video_frame'):
             frame = self.server.db[VIDEO_FRAME]
@@ -99,6 +114,7 @@ class Handler(SimpleHTTPRequestHandler):
             not self.path.startswith('/recognized_objects') and
             not self.path.startswith('/fire_laser') and
             not self.path.startswith('/get_search_objects') and
+            not self.path.startswith('/info') and
             not self.path == '/drone?command=rc%200.0000%200.0000%200.0000%200.0000'):
             super().log_message(format, *args)
 

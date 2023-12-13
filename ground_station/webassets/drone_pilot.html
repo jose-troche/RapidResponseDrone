@@ -19,7 +19,7 @@
 
       <h1 style="margin-top: 10px">Drone Pilot</h1>
       <!-- Gamepad -->
-      <div>
+      <!-- <div>
         <svg width="350" viewBox="0 30 441 383" fill="none" xmlns="http://www.w3.org/2000/svg">
           <g id="XBox">
             <path id="LOutline"
@@ -147,11 +147,15 @@
             </a>
           </g>
         </svg>
-      </div>
+      </div> -->
       <!-- END of Gamepad -->
 
+      <h3>Drone Telemetry</h3>
+      <li><span id="drone_telemetry" style="margin-bottom: 5px;"></span></li>
+
       <h3>Searched Objects</h3>
-      <input id="searched_objects"></input>
+      <div id="searched_objects" style="margin-bottom: 15px;"></div>
+      <input id="searched_objects_input"></input>
       <button onclick="setSearchObjects()">Set</button>
       <span id="fire" style="display: none; background-color: red; text-align: center; color: white;
                             font-weight: bolder; margin-left: 20px; padding: 2px 10px; width: 100px;">
